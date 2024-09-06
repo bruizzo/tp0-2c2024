@@ -1,7 +1,7 @@
 #include "server.h"
 
 int main(void) {
-	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
+	logger = log_create("logServidor.log", "SERVER-TP0", 1, LOG_LEVEL_DEBUG);
 
 	int server_fd = iniciar_servidor();
 	log_info(logger, "Servidor listo para recibir al cliente");
@@ -20,10 +20,10 @@ int main(void) {
 			list_iterate(lista, (void*) iterator);
 			break;
 		case -1:
-			log_error(logger, "el cliente se desconecto. Terminando servidor");
+			log_error(logger, "El cliente se desconectó. Terminando servidor");
 			return EXIT_FAILURE;
 		default:
-			log_warning(logger,"Operacion desconocida. No quieras meter la pata");
+			log_warning(logger, "Operación desconocida. No quieras meter la pata");
 			break;
 		}
 	}
