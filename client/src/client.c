@@ -1,149 +1,339 @@
 #include "client.h"
 
-int main(void)
-{
-	/*---------------------------------------------------PARTE 2-------------------------------------------------------------*/
+t_log* logger_client;
 
-	int conexion;
+int main(){
 	char* ip;
 	char* puerto;
-	char* valor;
 
-	t_log* logger;
 	t_config* config;
 
 	/* ---------------- LOGGING ---------------- */
 
-	logger = iniciar_logger();
-	if(logger == NULL){
-		// Error al crear el log; se debe terminar el programa
-		terminar_programa(conexion, logger, config);
-		// Revisar qué hace abort();
-	}
-
-	// Usando el logger creado previamente
-	// Escribi: "Hola! Soy un log"
-	log_info(logger, "Hola! Soy un log");
-
+	logger_client = iniciar_logger();
+	log_info(logger_client, "Bienvenidos al módulo Client");
 
 	/* ---------------- ARCHIVOS DE CONFIGURACION ---------------- */
 
 	config = iniciar_config();
-	if(config == NULL){
-		// Error al crear el config; se debe terminar el programa
-		terminar_programa(conexion, logger, config);
-	}
 
-
-	// Usando el config creado previamente, leemos los valores del config y los 
-	// dejamos en las variables 'ip', 'puerto' y 'valor'
 	ip = config_get_string_value(config, "IP");
 	puerto = config_get_string_value(config, "PUERTO");
-	valor = config_get_string_value(config, "CLAVE");
-
-	// Loggeamos el valor de config
-	char* valor_leido;
-	valor_leido = "El valor leído del config es: ";
-	//strcat(valor_leido, valor);
-	log_info(logger, valor);
+	// valor = config_get_string_value(config, "CLAVE");
 
 	/* ---------------- LEER DE CONSOLA ---------------- */
 
-	leer_consola(logger);
+	// leer_consola(logger);
 
-	/*---------------------------------------------------PARTE 3-------------------------------------------------------------*/
+	/*
+	int conexiones[5];
 
-	// ADVERTENCIA: Antes de continuar, tenemos que asegurarnos que el servidor esté corriendo para poder conectarnos a él
+	for (int i = 1; i<4; i++){
+		conexiones[i] = crear_conexion(ip, puerto, logger);
+		enviar_mensaje_multihilos(valor, conexiones[i], i);
+		sleep(2);
+	}
+	*/
 
 	// Creamos una conexión hacia el servidor
-	conexion = crear_conexion(ip, puerto, logger);
+	int socket_conexion = crear_conexion(ip, puerto);
 
-	// Enviamos al servidor el valor de CLAVE como mensaje
-	enviar_mensaje(valor, conexion);
+	int operacion_ingresada = 0;
 
+	while(operacion_ingresada != DESCONEXION){
+
+    	printf("Ingresa un número para ejecutar una operación: ");
+    	scanf("%d", &operacion_ingresada);
+
+		switch (operacion_ingresada) {
+    	    case HANDSHAKE: {
+    	        log_info(logger_client, "Operación 1: Ejecutando HANDSHAKE");
+				int valor_handshake = 5;
+
+				// Armo el paquete con el código de op
+				t_paquete* paquete = malloc(sizeof(t_paquete));
+				paquete->codigo_operacion = HANDSHAKE;
+
+				// Creo el buffer y lo agrego al paquete
+				t_buffer* buffer = malloc(sizeof(t_buffer));
+				buffer->size = sizeof(int);
+				buffer->stream = malloc(buffer->size);
+
+				memcpy(buffer->stream, &valor_handshake, sizeof(int));
+				paquete->buffer = buffer;
+
+				size_t bytes_a_enviar = sizeof(int)					// cód de op
+										+ sizeof(int)				// entero para guardar el tamaño del buffer
+										+ paquete->buffer->size;	// tamaño real del buffer
+
+				void* a_enviar = malloc(bytes_a_enviar);
+				int offset = 0;
+
+				memcpy(a_enviar + offset, &(paquete->codigo_operacion), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, &(paquete->buffer->size), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, paquete->buffer->stream, paquete->buffer->size);
+				offset += paquete->buffer->size;
+
+				ssize_t bytes_enviados;
+				bytes_enviados = send(socket_conexion, a_enviar, bytes_a_enviar, 0);
+				log_info(logger_client, "Se han enviado %d bytes de %d bytes", (int) bytes_enviados, (int) bytes_a_enviar);
+
+				free(a_enviar);
+				free(paquete->buffer->stream);
+				free(paquete->buffer);
+				free(paquete);
+
+    	        break;
+			}
+    	    case MENSAJE: {
+    	        log_info(logger_client, "Operación 2: Ejecutando MENSAJE");
+				char* mensaje = "dracarys";
+
+				// Armo el paquete con el código de op
+				t_paquete* paquete = malloc(sizeof(t_paquete));
+				paquete->codigo_operacion = MENSAJE;
+
+				// Creo el buffer y lo agrego al paquete
+				t_buffer* buffer = malloc(sizeof(t_buffer));
+				buffer->size = strlen(mensaje) + 1;
+				buffer->stream = malloc(buffer->size);
+
+				memcpy(buffer->stream, mensaje, strlen(mensaje) + 1);
+				paquete->buffer = buffer;
+
+				size_t bytes_a_enviar = sizeof(int)					// cód de op
+										+ sizeof(int)				// entero para guardar el tamaño del buffer
+										+ paquete->buffer->size;	// tamaño real del buffer
+
+				void* a_enviar = malloc(bytes_a_enviar);
+				int offset = 0;
+
+				memcpy(a_enviar + offset, &(paquete->codigo_operacion), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, &(paquete->buffer->size), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, paquete->buffer->stream, paquete->buffer->size);
+				offset += paquete->buffer->size;
+
+				ssize_t bytes_enviados;
+				bytes_enviados = send(socket_conexion, a_enviar, bytes_a_enviar, 0);
+				log_info(logger_client, "Se han enviado %d bytes de %d bytes", (int) bytes_enviados, (int) bytes_a_enviar);
+
+				free(a_enviar);
+				free(paquete->buffer->stream);
+				free(paquete->buffer);
+				free(paquete);
+
+    	        break;
+			}
+    	    case PERSONA_DAENERYS: {
+    	        log_info(logger_client, "Operación 3: Ejecutando DAENERYS");;
+    	        t_persona* persona = malloc(sizeof(t_persona));
+				persona->nombre = "Daenerys";
+				persona->nombre_length = strlen(persona->nombre) + 1;
+				persona->casa_real = "Targaryen";
+				persona->casa_real_length = strlen(persona->casa_real) + 1;
+				persona->poder = 1250;
+
+				// Armo el paquete con el código de op
+				t_paquete* paquete = malloc(sizeof(t_paquete));
+				paquete->codigo_operacion = PERSONA;
+
+				// Creo el buffer y lo agrego al paquete
+				t_buffer* buffer = malloc(sizeof(t_buffer));
+				buffer->size = sizeof(int) * 3
+							   + persona->nombre_length
+							   + persona->casa_real_length;
+				buffer->stream = malloc(buffer->size);
+
+				int offset_buffer_temp = 0;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->nombre_length), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				memcpy(buffer->stream + offset_buffer_temp, persona->nombre, persona->nombre_length);
+				offset_buffer_temp += persona->nombre_length;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->casa_real_length), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				memcpy(buffer->stream + offset_buffer_temp, persona->casa_real, persona->casa_real_length);
+				offset_buffer_temp += persona->casa_real_length;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->poder), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				paquete->buffer = buffer;
+
+				size_t bytes_a_enviar = sizeof(int)					// cód de op
+										+ sizeof(int)				// entero para guardar el tamaño del buffer
+										+ paquete->buffer->size;	// tamaño real del buffer
+
+				void* a_enviar = malloc(bytes_a_enviar);
+				int offset = 0;
+
+				memcpy(a_enviar + offset, &(paquete->codigo_operacion), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, &(paquete->buffer->size), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, paquete->buffer->stream, paquete->buffer->size);
+				offset += paquete->buffer->size;
+
+				ssize_t bytes_enviados;
+				bytes_enviados = send(socket_conexion, a_enviar, bytes_a_enviar, 0);
+				log_info(logger_client, "Se han enviado %d bytes de %d bytes", (int) bytes_enviados, (int) bytes_a_enviar);
+
+				free(a_enviar);
+				free(paquete->buffer->stream);
+				free(paquete->buffer);
+				free(paquete);
+
+    	        break;
+			}
+			case PERSONA_CERSEI: {
+    	        log_info(logger_client, "Operación 301: Ejecutando CERSEI");;
+    	        t_persona* persona = malloc(sizeof(t_persona));
+				persona->nombre = "Cersei";
+				persona->nombre_length = strlen(persona->nombre) + 1;
+				persona->casa_real = "Lannister";
+				persona->casa_real_length = strlen(persona->casa_real) + 1;
+				persona->poder = 985;
+
+				// Armo el paquete con el código de op
+				t_paquete* paquete = malloc(sizeof(t_paquete));
+				paquete->codigo_operacion = PERSONA;
+
+				// Creo el buffer y lo agrego al paquete
+				t_buffer* buffer = malloc(sizeof(t_buffer));
+				buffer->size = sizeof(int) * 3
+							   + persona->nombre_length
+							   + persona->casa_real_length;
+				buffer->stream = malloc(buffer->size);
+
+				int offset_buffer_temp = 0;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->nombre_length), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				memcpy(buffer->stream + offset_buffer_temp, persona->nombre, persona->nombre_length);
+				offset_buffer_temp += persona->nombre_length;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->casa_real_length), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				memcpy(buffer->stream + offset_buffer_temp, persona->casa_real, persona->casa_real_length);
+				offset_buffer_temp += persona->casa_real_length;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->poder), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				paquete->buffer = buffer;
+
+				size_t bytes_a_enviar = sizeof(int)					// cód de op
+										+ sizeof(int)				// entero para guardar el tamaño del buffer
+										+ paquete->buffer->size;	// tamaño real del buffer
+
+				void* a_enviar = malloc(bytes_a_enviar);
+				int offset = 0;
+
+				memcpy(a_enviar + offset, &(paquete->codigo_operacion), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, &(paquete->buffer->size), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, paquete->buffer->stream, paquete->buffer->size);
+				offset += paquete->buffer->size;
+
+				ssize_t bytes_enviados;
+				bytes_enviados = send(socket_conexion, a_enviar, bytes_a_enviar, 0);
+				log_info(logger_client, "Se han enviado %d bytes de %d bytes", (int) bytes_enviados, (int) bytes_a_enviar);
+
+				free(a_enviar);
+				free(paquete->buffer->stream);
+				free(paquete->buffer);
+				free(paquete);
+
+    	        break;
+
+			}
+			case PERSONA_ROBB: {
+				log_info(logger_client, "Operación 3: Ejecutando ROBB");;
+    	        t_persona* persona = malloc(sizeof(t_persona));
+				persona->nombre = "Robb";
+				persona->nombre_length = strlen(persona->nombre) + 1;
+				persona->casa_real = "Stark";
+				persona->casa_real_length = strlen(persona->casa_real) + 1;
+				persona->poder = 530;
+
+				// Armo el paquete con el código de op
+				t_paquete* paquete = malloc(sizeof(t_paquete));
+				paquete->codigo_operacion = PERSONA;
+
+				// Creo el buffer y lo agrego al paquete
+				t_buffer* buffer = malloc(sizeof(t_buffer));
+				buffer->size = sizeof(int) * 3
+							   + persona->nombre_length
+							   + persona->casa_real_length;
+				buffer->stream = malloc(buffer->size);
+
+				int offset_buffer_temp = 0;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->nombre_length), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				memcpy(buffer->stream + offset_buffer_temp, persona->nombre, persona->nombre_length);
+				offset_buffer_temp += persona->nombre_length;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->casa_real_length), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				memcpy(buffer->stream + offset_buffer_temp, persona->casa_real, persona->casa_real_length);
+				offset_buffer_temp += persona->casa_real_length;
+				memcpy(buffer->stream + offset_buffer_temp, &(persona->poder), sizeof(int));
+				offset_buffer_temp += sizeof(int);
+				paquete->buffer = buffer;
+
+				size_t bytes_a_enviar = sizeof(int)					// cód de op
+										+ sizeof(int)				// entero para guardar el tamaño del buffer
+										+ paquete->buffer->size;	// tamaño real del buffer
+
+				void* a_enviar = malloc(bytes_a_enviar);
+				int offset = 0;
+
+				memcpy(a_enviar + offset, &(paquete->codigo_operacion), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, &(paquete->buffer->size), sizeof(int));
+				offset += sizeof(int);
+				memcpy(a_enviar + offset, paquete->buffer->stream, paquete->buffer->size);
+				offset += paquete->buffer->size;
+
+				ssize_t bytes_enviados;
+				bytes_enviados = send(socket_conexion, a_enviar, bytes_a_enviar, 0);
+				log_info(logger_client, "Se han enviado %d bytes de %d bytes", (int) bytes_enviados, (int) bytes_a_enviar);
+
+				free(a_enviar);
+				free(paquete->buffer->stream);
+				free(paquete->buffer);
+				free(paquete);
+
+    	        break;
+			}
+			case DESCONEXION: {
+				log_warning(logger_client, "Iniciando desconexión...");
+				break;
+			}
+    	    default:
+    	        log_error(logger_client, "Operación inválida");
+    	        break;
+    	}
+	}
+
+	close(socket_conexion);
+	log_destroy(logger_client);
+	config_destroy(config);
+	return 0;
+}
+
+/*
 	// Armamos y enviamos el paquete
-	paquete(conexion);
+	// paquete(conexion);
+
+	close(conexiones[1]);
+	log_info(logger, "Se cerró la conexión 1");
+	close(conexiones[2]);
+	log_info(logger, "Se cerró la conexión 2");
+	close(conexiones[3]);
+	log_info(logger, "Se cerró la conexión 3");
+
+	log_destroy(logger);
+	config_destroy(config);
 
 	terminar_programa(conexion, logger, config);
 
-	/*---------------------------------------------------PARTE 5-------------------------------------------------------------*/
-	// Proximamente
 }
-
-t_log* iniciar_logger(void)
-{
-	t_log* nuevo_logger;
-
-	// Seteo los parámetros necesarios para iniciar el log
-	char* archivo_de_log = "tp0.log";
-	char* nombre_del_proceso = "CLIENT-TP0";
-	bool consola_activa = 1;
-	t_log_level nivel_de_log = LOG_LEVEL_INFO;
-
-	nuevo_logger = log_create(archivo_de_log, nombre_del_proceso, consola_activa, nivel_de_log);
-	
-	// Libero el espacio reservado a los parámetros, que ya no se necesitan
-	// free(archivo_de_log);
-	// free(nombre_del_proceso);
-
-	return nuevo_logger;
-}
-
-t_config* iniciar_config(void)
-{
-	t_config* nuevo_config;
-	//char* ruta_del_config = getcwd(NULL, 0);
-	nuevo_config = config_create("cliente.config");
-	return nuevo_config;
-}
-
-void leer_consola(t_log* logger)
-{
-	char* leido;
-
-	// La primera te la dejo de yapa
-	leido = readline("> ");
-
-	// El resto, las vamos leyendo y logueando hasta recibir un string vacío
-	while(strcmp(leido, "") != 0){
-		log_info(logger, leido);
-		leido = readline("> ");
-	}
-
-	// ¡No te olvides de liberar las lineas antes de regresar!
-	free(leido);
-}
-
-void paquete(int conexion)
-{
-	// Ahora toca lo divertido!
-	char* leido;
-	t_paquete* paquete;
-
-	// Creo el paquete, con cód de operación PAQUETE
-	paquete = crear_paquete();
-
-	leido = readline("> ");
-
-	// Voy leyendo y agregando al paquete cada línea leída
-	while(strcmp(leido, "") != 0){
-		agregar_a_paquete(paquete, leido, strlen(leido)+1);
-		leido = readline("> ");
-	}
-	
-	// Envío el paquete
-	enviar_paquete(paquete, conexion);
-
-	// ¡No te olvides de liberar las líneas y el paquete antes de regresar!
-	free(leido);
-	eliminar_paquete(paquete);
-}
-
-void terminar_programa(int conexion, t_log* logger, t_config* config)
-{
-	/* Y por ultimo, hay que liberar lo que utilizamos (conexion, log y config) 
-	  con las funciones de las commons y del TP mencionadas en el enunciado */
-	liberar_conexion(conexion);
-	log_destroy(logger);
-	config_destroy(config);
-}
+*/

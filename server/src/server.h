@@ -8,5 +8,7 @@
 #include "utils.h"
 
 void iterator(char* value);
+void* atender_cliente(int* socket_conexion);
+void* atender_cliente_remix(int* socket_conexion);
 
 #endif /* SERVER_H_ */
