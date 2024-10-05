@@ -24,6 +24,7 @@ typedef enum {
 
 typedef struct {
 	int size;
+	int offset;
 	void* stream;
 } t_buffer;
 
@@ -45,6 +46,14 @@ extern t_log* logger_client;
 int crear_conexion(char *ip, char* puerto);
 t_log* iniciar_logger();
 t_config* iniciar_config();
+
+void buffer_add_int(t_buffer* buffer, int data);
+void buffer_add_uint8(t_buffer* buffer, uint8_t data);
+void buffer_add_uint16(t_buffer* buffer, uint16_t data);
+void buffer_add_uint32(t_buffer* buffer, uint32_t data);
+void buffer_add_string(t_buffer* buffer, uint32_t length, char* string);
+
+
 // void leer_consola(t_log* logger);
 // void paquete(int conexion);
 // void terminar_programa(int conexion, t_log* logger, t_config* config);

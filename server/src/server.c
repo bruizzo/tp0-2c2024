@@ -12,52 +12,15 @@ int main(void) {
 	log_info(logger_server, "Bienvenidos al módulo Server");
 
 	int socket_escucha = iniciar_servidor();
-	int socket_conexion = esperar_cliente(socket_escucha);
+	
+	// Crear un hilo para cada conexión entrante, para poder manejar múltiples conexiones; cada hilo se encarga de cerrar su conexión
+	esperar_cliente_multihilos(socket_escucha);
 
-	int continuar = 1;
-	while(continuar){
-		int cod_op = recibir_cod_op(socket_conexion);
-		int tamanio_payload;
-		void* payload;
-		switch(cod_op){
-			case HANDSHAKE:
-				payload = recibir_buffer(socket_conexion, &tamanio_payload);
-				int handshake = deserializar_handshake(payload);
-				log_info(logger_server, "El valor recibido del handshake fue %d", handshake);
-				free(payload);
-				break;
-			case MENSAJE:
-				payload = recibir_buffer(socket_conexion, &tamanio_payload);
-				char* mensaje = deserializar_mensaje(payload, tamanio_payload);
-				log_info(logger_server, "El mensaje recibido fue: %s", mensaje);
-				free(payload);
-				free(mensaje);
-				break;
-			case PERSONA:
-				payload = recibir_buffer(socket_conexion, &tamanio_payload);
-				t_persona* persona = deserializar_persona(payload);
-				log_info(logger_server, "La persona recibida fue %s, de la casa %s, con un poder %d", persona->nombre, persona->casa_real, persona->poder);
-				free(payload);
-				free(persona->nombre);
-				free(persona->casa_real);
-				free(persona);
-				break;
-			case DESCONEXION:
-				log_warning(logger_server, "El cliente se ha desconectado. Cerrando conexión");
-				continuar = 0;
-				break;
-			case -1:
-				log_error(logger_server, "Se produjo un error. Cerrando conexión");
-				continuar = 0;
-				break;
-			default:
-				log_warning(logger_server, "No se conoce otra operación, intente nuevamente");
-				break;
-		}
-	}
+	// Para cuando el Server acepta una única conexión, por lo cual sólo hay un hilo; la función se encarga de cerrar la conexión
+	// int socket_conexion = esperar_cliente(socket_escucha);
+	// atender_cliente(socket_conexion);
 
 	log_info(logger_server, "Terminando el programa");
-	close(socket_conexion);
 	close(socket_escucha);
 	log_destroy(logger_server);
 

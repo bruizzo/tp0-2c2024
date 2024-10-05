@@ -168,7 +168,83 @@ t_paquete* crear_paquete_old(void) {
 	crear_buffer(paquete);
 	return paquete;
 }
+*/
 
+t_paquete* crear_paquete(int codigo_operacion){
+	t_paquete* paquete = malloc(sizeof(t_paquete));
+	paquete->codigo_operacion = codigo_operacion;
+	t_buffer* buffer = malloc(sizeof(t_buffer));
+	buffer->size = 0;
+	buffer->offset = 0;
+	buffer->stream = NULL;
+	paquete->buffer = buffer;
+	return paquete;
+}
+
+void buffer_add_int(t_buffer* buffer, int data){
+	buffer->stream = realloc(buffer->stream, buffer->size + sizeof(int));
+	buffer->size += sizeof(int);
+	memcpy(buffer->stream + buffer->offset, &data, sizeof(int));
+	buffer->offset += sizeof(int);
+}
+
+void buffer_add_uint8(t_buffer* buffer, uint8_t data){
+	buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint8_t));
+	buffer->size += sizeof(uint8_t);
+	memcpy(buffer->stream + buffer->offset, &data, sizeof(uint8_t));
+	buffer->offset += sizeof(uint8_t);
+}
+
+void buffer_add_uint16(t_buffer* buffer, uint16_t data){
+	buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint16_t));
+	buffer->size += sizeof(uint16_t);
+	memcpy(buffer->stream + buffer->offset, &data, sizeof(uint16_t));
+	buffer->offset += sizeof(uint16_t);
+}
+
+void buffer_add_uint32(t_buffer* buffer, uint32_t data){
+	buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint32_t));
+	buffer->size += sizeof(uint32_t);
+	memcpy(buffer->stream + buffer->offset, &data, sizeof(uint32_t));
+	buffer->offset += sizeof(uint32_t);
+}
+
+// Agrega string al buffer con un uint32_t adelante indicando su longitud
+void buffer_add_string(t_buffer* buffer, uint32_t length, char* string){
+	buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint32_t) + length);
+	buffer->size += sizeof(uint32_t) + length;
+	memcpy(buffer->stream + buffer->offset, &length, sizeof(uint32_t));
+	buffer->offset += sizeof(uint32_t);
+	memcpy(buffer->stream + buffer->offset, string, length);
+	buffer->offset += length;
+}
+
+void enviar_paquete(int socket_conexion, t_paquete* paquete){
+	size_t bytes_a_enviar = sizeof(int)					// cód de op
+							+ sizeof(int)				// entero para guardar el tamaño del payload
+							+ paquete->buffer->size;	// tamaño real del payload
+
+	void* a_enviar = malloc(bytes_a_enviar);
+	int offset = 0;
+
+	memcpy(a_enviar + offset, &(paquete->codigo_operacion), sizeof(int));
+	offset += sizeof(int);
+	memcpy(a_enviar + offset, &(paquete->buffer->size), sizeof(int));
+	offset += sizeof(int);
+	memcpy(a_enviar + offset, paquete->buffer->stream, paquete->buffer->size);
+	offset += paquete->buffer->size;
+
+	ssize_t bytes_enviados;
+	bytes_enviados = send(socket_conexion, a_enviar, bytes_a_enviar, 0);
+	log_info(logger_client, "Se han enviado %d bytes de %d bytes", (int) bytes_enviados, (int) bytes_a_enviar);
+
+	free(a_enviar);
+	free(paquete->buffer->stream);
+	free(paquete->buffer);
+	free(paquete);
+}
+
+/*
 void agregar_a_paquete_old(t_paquete* paquete, void* valor, int tamanio) {
 	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
 

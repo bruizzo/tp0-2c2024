@@ -53,7 +53,29 @@ int iniciar_servidor(){
 	return socket_servidor;
 }
 
+void esperar_cliente_multihilos(int socket_escucha){
+
+	while (1) {
+    	pthread_t thread_conexion;
+    	int* socket_conexion = malloc(sizeof(int));
+    	*socket_conexion = accept(socket_escucha, NULL, NULL);
+		if(*socket_conexion == -1){
+			log_error(logger_server, "Error al intentar aceptar una conexión entrante");
+		} else {
+			log_info(logger_server, "¡Se ha iniciado una conexión! Socket de conexión: %d", *socket_conexion);
+		}
+		int err = pthread_create(&thread_conexion, NULL, atender_cliente_multihilos, socket_conexion);
+		if (err != 0) {
+        	log_error(logger_server, "Error al crear el hilo para manejar la conexión");
+    	} else {
+			log_info(logger_server, "Hilo creado exitosamente para manejar la conexión");
+			pthread_detach(thread_conexion);
+		}	
+	}
+}
+
 int esperar_cliente(int socket_escucha){
+
 		int socket_conexion = accept(socket_escucha, NULL, NULL);
 		if(socket_conexion == -1){
 			log_error(logger_server, "Error al intentar aceptar una conexión entrante");
@@ -63,6 +85,114 @@ int esperar_cliente(int socket_escucha){
 		}
 
 		return socket_conexion;
+}
+
+void* atender_cliente_multihilos(void* socket){
+
+	int socket_conexion = *(int*)socket;
+	free(socket);
+
+	int continuar = 1;
+	while(continuar){
+		int cod_op = recibir_cod_op(socket_conexion);
+		int tamanio_payload;
+		void* payload;
+		switch(cod_op){
+			case HANDSHAKE:
+				payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				int handshake = deserializar_handshake(payload);
+				log_info(logger_server, "El valor recibido del handshake fue %d", handshake);
+				free(payload);
+				break;
+			case MENSAJE:
+				payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				char* mensaje = deserializar_mensaje(payload, tamanio_payload);
+				log_info(logger_server, "El mensaje recibido fue: %s", mensaje);
+				free(payload);
+				free(mensaje);
+				break;
+			case PERSONA:
+				payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				t_persona* persona = deserializar_persona(payload);
+				log_info(logger_server, "La persona recibida fue %s, de la casa %s, con un poder %d", persona->nombre, persona->casa_real, persona->poder);
+				free(payload);
+				free(persona->nombre);
+				free(persona->casa_real);
+				free(persona);
+				break;
+			case DESCONEXION:
+				log_warning(logger_server, "El cliente se ha desconectado. Cerrando conexión");
+				continuar = 0;
+				break;
+			case -1:
+				log_error(logger_server, "Se produjo un error. Cerrando conexión");
+				continuar = 0;
+				break;
+			default:
+				log_warning(logger_server, "No se conoce otra operación, intente nuevamente");
+				break;
+		}
+	}
+
+	close(socket_conexion);
+	return NULL;
+}
+
+void atender_cliente(int socket_conexion){
+
+	int continuar = 1;
+	while(continuar){
+		int cod_op = recibir_cod_op(socket_conexion);
+		int tamanio_payload;
+		// void* payload;
+		t_buffer* buffer;
+		switch(cod_op){
+			case HANDSHAKE:
+				// payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				buffer = recibir_buffer(socket_conexion, &tamanio_payload);
+				// int handshake = deserializar_handshake(payload);
+				int handshake = deserializar_handshake_new(buffer);
+				log_info(logger_server, "El valor recibido del handshake fue %d", handshake);
+				// free(payload);
+				free(buffer);
+				break;
+			case MENSAJE:
+				// payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				buffer = recibir_buffer(socket_conexion, &tamanio_payload);
+				// char* mensaje = deserializar_mensaje(payload, tamanio_payload);
+				char* mensaje = deserializar_mensaje_new(buffer);
+				log_info(logger_server, "El mensaje recibido fue: %s", mensaje);
+				// free(payload);
+				free(buffer);
+				free(mensaje);
+				break;
+			case PERSONA:
+				// payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				buffer = recibir_buffer(socket_conexion, &tamanio_payload);
+				// t_persona* persona = deserializar_persona(payload);
+				t_persona* persona = deserializar_persona_new(buffer);
+				log_info(logger_server, "La persona recibida fue %s, de la casa %s, con un poder %d", persona->nombre, persona->casa_real, persona->poder);
+				// free(payload);
+				free(buffer);
+				free(persona->nombre);
+				free(persona->casa_real);
+				free(persona);
+				break;
+			case DESCONEXION:
+				log_warning(logger_server, "El cliente se ha desconectado. Cerrando conexión");
+				continuar = 0;
+				break;
+			case -1:
+				log_error(logger_server, "Se produjo un error. Cerrando conexión");
+				continuar = 0;
+				break;
+			default:
+				log_warning(logger_server, "No se conoce otra operación, intente nuevamente");
+				break;
+		}
+	}
+
+	close(socket_conexion);
 }
 
 int recibir_cod_op(int socket_conexion){
@@ -81,8 +211,12 @@ int recibir_cod_op(int socket_conexion){
 }
 
 void* recibir_buffer(int socket_conexion, int* tamanio_payload){
+	t_buffer* buffer = malloc(sizeof(t_buffer));
+	buffer->size = 0;
+	buffer->offset = 0;
+	buffer->stream = NULL;
+	
 	ssize_t bytes_leidos;
-
 	bytes_leidos = recv(socket_conexion, tamanio_payload, sizeof(int), MSG_WAITALL);
 	log_info(logger_server, "Se han leído %d bytes; el payload tiene un tamaño de %d bytes ", (int) bytes_leidos, *tamanio_payload);
 	if(bytes_leidos <= 0){
@@ -98,6 +232,9 @@ void* recibir_buffer(int socket_conexion, int* tamanio_payload){
 		return NULL;
 	}
 
+	buffer->size = *tamanio_payload;
+	buffer->stream = payload;
+
 	return payload;
 }
 
@@ -111,6 +248,55 @@ int deserializar_handshake(void* payload){
 	return handshake;
 }
 
+int deserializar_handshake_new(t_buffer* buffer){
+
+	int handshake;
+	handshake = buffer_read_int(buffer);
+	return handshake;
+}
+
+int buffer_read_int(t_buffer* buffer){
+	int data;
+	memcpy(&data, buffer->stream + buffer->offset, sizeof(int));
+	buffer->offset += sizeof(int);
+	return data;
+}
+
+uint8_t buffer_read_uint8(t_buffer* buffer){
+	uint8_t data;
+	memcpy(&data, buffer->stream + buffer->offset, sizeof(uint8_t));
+	buffer->offset += sizeof(uint8_t);
+	return data;
+}
+
+uint16_t buffer_read_uint16(t_buffer* buffer){
+	uint16_t data;
+	memcpy(&data, buffer->stream + buffer->offset, sizeof(uint16_t));
+	buffer->offset += sizeof(uint16_t);
+	return data;
+}
+
+uint32_t buffer_read_uint32(t_buffer* buffer){
+	uint16_t data;
+	memcpy(&data, buffer->stream + buffer->offset, sizeof(uint32_t));
+	buffer->offset += sizeof(uint32_t);
+	return data;
+}
+
+char* buffer_read_string(t_buffer* buffer, uint32_t length){
+	char* data = malloc(length);
+	memcpy(data, buffer->stream + buffer->offset, length);
+	buffer->offset += length;
+	return data;
+}
+
+char* buffer_read_string_int_length(t_buffer* buffer, int length){
+	char* data = malloc(length);
+	memcpy(data, buffer->stream + buffer->offset, length);
+	buffer->offset += length;
+	return data;
+}
+
 char* deserializar_mensaje(void* payload, int tamanio_payload){
 	
 	char* mensaje = malloc(tamanio_payload);
@@ -118,6 +304,12 @@ char* deserializar_mensaje(void* payload, int tamanio_payload){
 	memcpy(mensaje, payload + offset, tamanio_payload);
 	offset += tamanio_payload;
 	
+	return mensaje;
+}
+
+char* deserializar_mensaje_new(t_buffer* buffer){
+	
+	char* mensaje = buffer_read_string(buffer, (uint32_t)(buffer->size));
 	return mensaje;
 }
 
@@ -137,6 +329,18 @@ t_persona* deserializar_persona(void* payload){
 	offset += persona->casa_real_length;
 	memcpy(&(persona->poder), payload + offset, sizeof(int));
 	offset += sizeof(int);
+
+	return persona;
+}
+
+t_persona* deserializar_persona_new(t_buffer* buffer){
+
+	t_persona* persona = malloc(sizeof(t_persona));
+	persona->nombre_length = buffer_read_int(buffer);
+	persona->nombre = buffer_read_string(buffer, (uint32_t)(persona->nombre_length));
+	persona->casa_real_length = buffer_read_int(buffer);
+	persona->casa_real = buffer_read_string(buffer, (uint32_t)(persona->casa_real_length));
+	persona->poder = buffer_read_int(buffer);
 
 	return persona;
 }
