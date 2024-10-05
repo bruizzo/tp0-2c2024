@@ -210,11 +210,9 @@ void buffer_add_uint32(t_buffer* buffer, uint32_t data){
 }
 
 // Agrega string al buffer con un uint32_t adelante indicando su longitud
-void buffer_add_string(t_buffer* buffer, uint32_t length, char* string){
-	buffer->stream = realloc(buffer->stream, buffer->size + sizeof(uint32_t) + length);
-	buffer->size += sizeof(uint32_t) + length;
-	memcpy(buffer->stream + buffer->offset, &length, sizeof(uint32_t));
-	buffer->offset += sizeof(uint32_t);
+void buffer_add_string(t_buffer* buffer, int length, char* string){
+	buffer->stream = realloc(buffer->stream, buffer->size + length);
+	buffer->size += length;
 	memcpy(buffer->stream + buffer->offset, string, length);
 	buffer->offset += length;
 }

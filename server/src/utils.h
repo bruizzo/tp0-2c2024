@@ -47,7 +47,7 @@ void atender_cliente(int socket_conexion);
 
 int esperar_cliente(int socket_escucha);
 int recibir_cod_op(int socket_conexion);
-void* recibir_buffer(int socket_conexion, int* tamanio_payload);
+t_buffer* recibir_buffer(int socket_conexion, int* tamanio_payload);
 int deserializar_handshake(void* payload);
 int deserializar_handshake_new(t_buffer* buffer);
 char* deserializar_mensaje(void* payload, int tamanio_payload);

@@ -50,6 +50,11 @@ int main(){
     	        log_info(logger_client, "Operación 1: Ejecutando HANDSHAKE");
 				int valor_handshake = 5;
 
+				t_paquete* paquete = crear_paquete(HANDSHAKE);
+				buffer_add_int(paquete->buffer, valor_handshake);
+				enviar_paquete(socket_conexion, paquete);
+
+				/*
 				// Armo el paquete con el código de op
 				t_paquete* paquete = malloc(sizeof(t_paquete));
 				paquete->codigo_operacion = HANDSHAKE;
@@ -84,13 +89,18 @@ int main(){
 				free(paquete->buffer->stream);
 				free(paquete->buffer);
 				free(paquete);
-
+				*/
     	        break;
 			}
     	    case MENSAJE: {
     	        log_info(logger_client, "Operación 2: Ejecutando MENSAJE");
 				char* mensaje = "dracarys";
 
+				t_paquete* paquete = crear_paquete(MENSAJE);
+				buffer_add_string(paquete->buffer, (int) (strlen(mensaje) + 1), mensaje);
+				enviar_paquete(socket_conexion, paquete);
+
+				/*
 				// Armo el paquete con el código de op
 				t_paquete* paquete = malloc(sizeof(t_paquete));
 				paquete->codigo_operacion = MENSAJE;
@@ -120,12 +130,12 @@ int main(){
 				ssize_t bytes_enviados;
 				bytes_enviados = send(socket_conexion, a_enviar, bytes_a_enviar, 0);
 				log_info(logger_client, "Se han enviado %d bytes de %d bytes", (int) bytes_enviados, (int) bytes_a_enviar);
-
+				
 				free(a_enviar);
 				free(paquete->buffer->stream);
 				free(paquete->buffer);
 				free(paquete);
-
+				*/
     	        break;
 			}
     	    case PERSONA_DAENERYS: {
@@ -137,6 +147,15 @@ int main(){
 				persona->casa_real_length = strlen(persona->casa_real) + 1;
 				persona->poder = 1250;
 
+				t_paquete* paquete = crear_paquete(PERSONA);
+				buffer_add_int(paquete->buffer, persona->nombre_length);
+				buffer_add_string(paquete->buffer, persona->nombre_length, persona->nombre);
+				buffer_add_int(paquete->buffer, persona->casa_real_length);
+				buffer_add_string(paquete->buffer, persona->casa_real_length, persona->casa_real);
+				buffer_add_int(paquete->buffer, persona->poder);
+				enviar_paquete(socket_conexion, paquete);
+
+				/*
 				// Armo el paquete con el código de op
 				t_paquete* paquete = malloc(sizeof(t_paquete));
 				paquete->codigo_operacion = PERSONA;
@@ -183,7 +202,7 @@ int main(){
 				free(paquete->buffer->stream);
 				free(paquete->buffer);
 				free(paquete);
-
+				*/
     	        break;
 			}
 			case PERSONA_CERSEI: {
@@ -195,6 +214,15 @@ int main(){
 				persona->casa_real_length = strlen(persona->casa_real) + 1;
 				persona->poder = 985;
 
+				t_paquete* paquete = crear_paquete(PERSONA);
+				buffer_add_int(paquete->buffer, persona->nombre_length);
+				buffer_add_string(paquete->buffer, persona->nombre_length, persona->nombre);
+				buffer_add_int(paquete->buffer, persona->casa_real_length);
+				buffer_add_string(paquete->buffer, persona->casa_real_length, persona->casa_real);
+				buffer_add_int(paquete->buffer, persona->poder);
+				enviar_paquete(socket_conexion, paquete);
+
+				/*
 				// Armo el paquete con el código de op
 				t_paquete* paquete = malloc(sizeof(t_paquete));
 				paquete->codigo_operacion = PERSONA;
@@ -241,7 +269,7 @@ int main(){
 				free(paquete->buffer->stream);
 				free(paquete->buffer);
 				free(paquete);
-
+				*/
     	        break;
 
 			}
@@ -254,6 +282,15 @@ int main(){
 				persona->casa_real_length = strlen(persona->casa_real) + 1;
 				persona->poder = 530;
 
+				t_paquete* paquete = crear_paquete(PERSONA);
+				buffer_add_int(paquete->buffer, persona->nombre_length);
+				buffer_add_string(paquete->buffer, persona->nombre_length, persona->nombre);
+				buffer_add_int(paquete->buffer, persona->casa_real_length);
+				buffer_add_string(paquete->buffer, persona->casa_real_length, persona->casa_real);
+				buffer_add_int(paquete->buffer, persona->poder);
+				enviar_paquete(socket_conexion, paquete);
+
+				/*
 				// Armo el paquete con el código de op
 				t_paquete* paquete = malloc(sizeof(t_paquete));
 				paquete->codigo_operacion = PERSONA;
@@ -300,7 +337,7 @@ int main(){
 				free(paquete->buffer->stream);
 				free(paquete->buffer);
 				free(paquete);
-
+				*/
     	        break;
 			}
 			case DESCONEXION: {

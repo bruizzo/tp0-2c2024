@@ -51,7 +51,10 @@ void buffer_add_int(t_buffer* buffer, int data);
 void buffer_add_uint8(t_buffer* buffer, uint8_t data);
 void buffer_add_uint16(t_buffer* buffer, uint16_t data);
 void buffer_add_uint32(t_buffer* buffer, uint32_t data);
-void buffer_add_string(t_buffer* buffer, uint32_t length, char* string);
+void buffer_add_string(t_buffer* buffer, int length, char* string);
+
+t_paquete* crear_paquete(int codigo_operacion);
+void enviar_paquete(int socket_conexion, t_paquete* paquete);
 
 
 // void leer_consola(t_log* logger);

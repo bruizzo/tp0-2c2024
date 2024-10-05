@@ -96,26 +96,36 @@ void* atender_cliente_multihilos(void* socket){
 	while(continuar){
 		int cod_op = recibir_cod_op(socket_conexion);
 		int tamanio_payload;
-		void* payload;
+		// void* payload;
+		t_buffer* buffer;
 		switch(cod_op){
 			case HANDSHAKE:
-				payload = recibir_buffer(socket_conexion, &tamanio_payload);
-				int handshake = deserializar_handshake(payload);
+				// payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				buffer = recibir_buffer(socket_conexion, &tamanio_payload);
+				// int handshake = deserializar_handshake(payload);
+				int handshake = deserializar_handshake_new(buffer);
 				log_info(logger_server, "El valor recibido del handshake fue %d", handshake);
-				free(payload);
+				// free(payload);
+				free(buffer);
 				break;
 			case MENSAJE:
-				payload = recibir_buffer(socket_conexion, &tamanio_payload);
-				char* mensaje = deserializar_mensaje(payload, tamanio_payload);
+				// payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				buffer = recibir_buffer(socket_conexion, &tamanio_payload);
+				// char* mensaje = deserializar_mensaje(payload, tamanio_payload);
+				char* mensaje = deserializar_mensaje_new(buffer);
 				log_info(logger_server, "El mensaje recibido fue: %s", mensaje);
-				free(payload);
+				// free(payload);
+				free(buffer);
 				free(mensaje);
 				break;
 			case PERSONA:
-				payload = recibir_buffer(socket_conexion, &tamanio_payload);
-				t_persona* persona = deserializar_persona(payload);
+				// payload = recibir_buffer(socket_conexion, &tamanio_payload);
+				buffer = recibir_buffer(socket_conexion, &tamanio_payload);
+				// t_persona* persona = deserializar_persona(payload);
+				t_persona* persona = deserializar_persona_new(buffer);
 				log_info(logger_server, "La persona recibida fue %s, de la casa %s, con un poder %d", persona->nombre, persona->casa_real, persona->poder);
-				free(payload);
+				// free(payload);
+				free(buffer);
 				free(persona->nombre);
 				free(persona->casa_real);
 				free(persona);
@@ -210,7 +220,7 @@ int recibir_cod_op(int socket_conexion){
 	return cod_op;
 }
 
-void* recibir_buffer(int socket_conexion, int* tamanio_payload){
+t_buffer* recibir_buffer(int socket_conexion, int* tamanio_payload){
 	t_buffer* buffer = malloc(sizeof(t_buffer));
 	buffer->size = 0;
 	buffer->offset = 0;
@@ -235,7 +245,7 @@ void* recibir_buffer(int socket_conexion, int* tamanio_payload){
 	buffer->size = *tamanio_payload;
 	buffer->stream = payload;
 
-	return payload;
+	return buffer;
 }
 
 int deserializar_handshake(void* payload){
